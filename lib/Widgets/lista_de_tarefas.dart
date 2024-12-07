@@ -38,7 +38,7 @@ class _ListaDeTarefasState extends State<ListaDeTarefas> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                DateFormat('dd/MM/yyyy').format(widget.tarefa.DataHorario),
+                DateFormat('dd/MM/yyyy').format(widget.tarefa.dataHorario),
                 style: TextStyle(fontSize: 12),
               ),
               Text(

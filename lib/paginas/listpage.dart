@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lista_de_tarefas/Widgets/lista_de_tarefas.dart';
 import 'package:lista_de_tarefas/models/todo.dart';
+import 'package:lista_de_tarefas/repositories/repositorio_tarefa.dart';
 
 class ListPage extends StatefulWidget {
   ListPage({super.key});
@@ -14,7 +15,21 @@ class _ListPageState extends State<ListPage> {
   Tarefa? tarefaDeletada;
   int? indice_da_tarefaDeletada;
 
+  String? mensagem_de_erro;
+
   final TextEditingController controlarTarefas = TextEditingController();
+  final TarefaRepositorio tarefaRepositorio = TarefaRepositorio();
+
+  @override
+  void initState() {
+    super.initState();
+
+    tarefaRepositorio.ler_lista_de_tarefas().then((value) {
+      setState(() {
+        tarefas = value;
+      });
+    });
+  }
 
   void onDelete(Tarefa tarefa) {
     tarefaDeletada = tarefa;
@@ -23,7 +38,7 @@ class _ListPageState extends State<ListPage> {
     setState(() {
       tarefas.remove(tarefa);
     });
-
+    tarefaRepositorio.salvar_lista_de_tarefas(tarefas);
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -40,6 +55,7 @@ class _ListPageState extends State<ListPage> {
               setState(() {
                 tarefas.insert(indice_da_tarefaDeletada!, tarefaDeletada!);
               });
+              tarefaRepositorio.salvar_lista_de_tarefas(tarefas);
             }),
         duration: const Duration(seconds: 5),
       ),
@@ -51,7 +67,8 @@ class _ListPageState extends State<ListPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Limpar tudo?'),
-        content: const Text('Você tem certeza que deseja excluir todas as tarefas?'),
+        content:
+            const Text('Você tem certeza que deseja excluir todas as tarefas?'),
         actions: [
           TextButton(
               onPressed: () {
@@ -67,6 +84,7 @@ class _ListPageState extends State<ListPage> {
                 tarefas.clear();
                 Navigator.of(context).pop();
               });
+              tarefaRepositorio.salvar_lista_de_tarefas(tarefas);
             },
             child: const Text(
               'Limpar tudo',
@@ -94,22 +112,31 @@ class _ListPageState extends State<ListPage> {
                   Expanded(
                       child: TextField(
                     controller: controlarTarefas,
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Adicione uma tarefa',
-                        hintText: 'Estudar flutter'),
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: 'Adicione uma tarefa',
+                      hintText: 'Estudar flutter',
+                      errorText: mensagem_de_erro,
+                    ),
                   )),
                   const SizedBox(width: 15),
                   ElevatedButton(
                       onPressed: () {
+                        if (controlarTarefas.text.isEmpty) {
+                          setState(() {
+                            mensagem_de_erro = 'Por favor, adicione uma tarefa';
+                          });
+                          return;
+                        }
                         Tarefa novaTarefa = Tarefa(
                             tarefaNome: controlarTarefas.text,
-                            DataHorario: DateTime.now());
+                            dataHorario: DateTime.now());
                         setState(() {
                           tarefas.add(novaTarefa);
                         });
-
+                        mensagem_de_erro = null;
                         controlarTarefas.clear();
+                        tarefaRepositorio.salvar_lista_de_tarefas(tarefas);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xff08cdc7),
