@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lista_de_tarefas/Widgets/lista_de_tarefas.dart';
 import 'package:lista_de_tarefas/models/todo.dart';
-import 'package:lista_de_tarefas/repositories/repositorio_tarefa.dart';
+import 'package:lista_de_tarefas/paginas/login.dart';
+
+import 'package:lista_de_tarefas/servicos/autenticacao_servicos.dart';
+import 'package:lista_de_tarefas/servicos/exercicio_servico.dart';
+import 'package:uuid/uuid.dart';
 
 class ListPage extends StatefulWidget {
   ListPage({super.key});
@@ -14,31 +18,23 @@ class _ListPageState extends State<ListPage> {
   List<Tarefa> tarefas = [];
   Tarefa? tarefaDeletada;
   int? indice_da_tarefaDeletada;
+  AutenticacaoServicos _autenticacaoServicos = AutenticacaoServicos();
 
   String? mensagem_de_erro;
 
+  TarefaServico _tarefaServico = TarefaServico();
+  TarefaServico tarefa = TarefaServico();
+
   final TextEditingController controlarTarefas = TextEditingController();
-  final TarefaRepositorio tarefaRepositorio = TarefaRepositorio();
 
-  @override
-  void initState() {
-    super.initState();
-
-    tarefaRepositorio.ler_lista_de_tarefas().then((value) {
-      setState(() {
-        tarefas = value;
-      });
-    });
-  }
-
-  void onDelete(Tarefa tarefa) {
+  void onDelete(Tarefa tarefa) async {
     tarefaDeletada = tarefa;
     indice_da_tarefaDeletada = tarefas.indexOf(tarefa);
 
     setState(() {
       tarefas.remove(tarefa);
     });
-    tarefaRepositorio.salvar_lista_de_tarefas(tarefas);
+
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -55,7 +51,6 @@ class _ListPageState extends State<ListPage> {
               setState(() {
                 tarefas.insert(indice_da_tarefaDeletada!, tarefaDeletada!);
               });
-              tarefaRepositorio.salvar_lista_de_tarefas(tarefas);
             }),
         duration: const Duration(seconds: 5),
       ),
@@ -84,7 +79,6 @@ class _ListPageState extends State<ListPage> {
                 tarefas.clear();
                 Navigator.of(context).pop();
               });
-              tarefaRepositorio.salvar_lista_de_tarefas(tarefas);
             },
             child: const Text(
               'Limpar tudo',
@@ -100,7 +94,25 @@ class _ListPageState extends State<ListPage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+        appBar: AppBar(),
         backgroundColor: Colors.white,
+        drawer: Drawer(
+          child: ListView(
+            children: [
+              ListTile(
+                  leading: Icon(Icons.logout),
+                  title: Text('Deslogar'),
+                  onTap: () => {
+                        _autenticacaoServicos.deslogar(),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => telaDelogin()),
+                        )
+                      })
+            ],
+          ),
+        ),
         body: Center(
             child: Padding(
           padding: const EdgeInsets.all(16),
@@ -121,7 +133,7 @@ class _ListPageState extends State<ListPage> {
                   )),
                   const SizedBox(width: 15),
                   ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (controlarTarefas.text.isEmpty) {
                           setState(() {
                             mensagem_de_erro = 'Por favor, adicione uma tarefa';
@@ -129,14 +141,19 @@ class _ListPageState extends State<ListPage> {
                           return;
                         }
                         Tarefa novaTarefa = Tarefa(
-                            tarefaNome: controlarTarefas.text,
-                            dataHorario: DateTime.now());
+                          id: const Uuid().v1(),
+                          tarefaNome: controlarTarefas.text,
+                          dataHorario: DateTime.now(),
+                        );
+
+                        await _tarefaServico.adicionarTarefa(novaTarefa);
+
                         setState(() {
                           tarefas.add(novaTarefa);
                         });
+
                         mensagem_de_erro = null;
                         controlarTarefas.clear();
-                        tarefaRepositorio.salvar_lista_de_tarefas(tarefas);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xff08cdc7),
@@ -151,18 +168,39 @@ class _ListPageState extends State<ListPage> {
               ),
               const SizedBox(height: 20),
               Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (Tarefa tarefa in tarefas)
-                      ListaDeTarefas(
-                        tarefa: tarefa,
-                        onDelete: onDelete,
-                      ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
+                  child: StreamBuilder(
+                stream: tarefa.conectarStreamTarefas(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  } else {
+                    if (snapshot.hasData &&
+                        snapshot.data != null &&
+                        snapshot.data!.docs.isNotEmpty) {
+                      List<Tarefa> novasTarefas = [];
+                      for (var doc in snapshot.data!.docs) {
+                        novasTarefas.add(Tarefa.fromMap(doc.data()));
+                      }
+                      return ListView(
+                        shrinkWrap: true,
+                        children: [
+                          for (Tarefa tarefa in novasTarefas)
+                            ListaDeTarefas(
+                              tarefa: tarefa,
+                              onDelete: onDelete,
+                            ),
+                          const SizedBox(height: 16),
+                        ],
+                      );
+                    } else {
+                      return const Center(
+                          child: Text('Adicione uma tarefa...'));
+                    }
+                  }
+                },
+              )),
               const SizedBox(height: 20),
               Row(
                 children: [

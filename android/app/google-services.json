@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "409853825637",
+    "project_id": "lista-de-tarefa-76e3c",
+    "storage_bucket": "lista-de-tarefa-76e3c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:409853825637:android:97a8888df06816a01c2c8c",
+        "android_client_info": {
+          "package_name": "com.example.lista_de_tarefas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9hQ4FBcl2INsCvnoZSMlAOk6wWljBuyU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

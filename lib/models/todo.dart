@@ -1,17 +1,19 @@
 class Tarefa {
-  Tarefa({required this.tarefaNome, required this.dataHorario});
+  Tarefa(
+      {required this.tarefaNome, required this.dataHorario, required this.id});
 
-  Tarefa.fromJson(Map<String, dynamic> json)
-      : tarefaNome = json['tarefaNome'] ?? '',
-        dataHorario = json['DataHorario'] != null
-            ? DateTime.parse(json['DataHorario'])
-            : DateTime.now();
-
+  String id;
   String tarefaNome;
   DateTime dataHorario;
 
-  Map<String, dynamic> toJson() {
+  Tarefa.fromMap(Map<String, dynamic> map)
+      : id = map['id'],
+        tarefaNome = map['tarefaNome'],
+        dataHorario = DateTime.parse(map['dataHorario']);
+
+  Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'tarefaNome': tarefaNome,
       'dataHorario': dataHorario.toIso8601String(),
     };
